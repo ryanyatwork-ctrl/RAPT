@@ -13,6 +13,7 @@ import ListingOptimizer from "./pages/ListingOptimizer";
 import Properties from "./pages/Properties";
 import Forecast from "./pages/Forecast";
 import Subscription from "./pages/Subscription";
+import Admin from "./pages/Admin";
 import DashboardLayout from "./components/DashboardLayout";
 
 function AppRouter() {
@@ -71,14 +72,20 @@ function AppRouter() {
           </DashboardLayout>
         )}
       </Route>
-      <Route path="/subscription">
+       <Route path="/subscription">
         {() => (
           <DashboardLayout>
             <Subscription />
           </DashboardLayout>
         )}
       </Route>
-
+      <Route path="/admin">
+        {() => (
+          <DashboardLayout>
+            <Admin />
+          </DashboardLayout>
+        )}
+      </Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

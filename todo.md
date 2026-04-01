@@ -68,3 +68,31 @@
 - [x] Vitest: auth.me and auth.logout
 - [x] Vitest: subscription tier limits (free/pro/advanced)
 - [x] All 7 tests passing
+
+
+## Stripe Integration (NEW)
+- [x] Add Stripe feature to project
+- [x] Configure Stripe API keys (publishable + secret)
+- [x] Build Stripe checkout session router
+- [x] Create Stripe subscription info retrieval
+- [x] Implement subscription status tracking in DB
+- [x] Build Stripe webhook handler for payment events
+- [x] Wire webhook to update user tier and payment status
+
+## Admin Portal (NEW)
+- [x] Admin-only route protection (/admin)
+- [x] User list table with subscription status
+- [x] Subscription status badges (active, trial, cancelled, expired)
+- [x] Cancel subscription action with confirmation
+- [x] Admin role enforcement (only owner can access)
+- [x] Admin menu item in sidebar (hidden for non-admins)
+
+## Event Data APIs (NEW)
+- [x] Eventbrite API integration scaffolding
+- [x] Ticketmaster API integration with live search
+- [x] Event deduplication logic (avoid duplicates across sources)
+- [x] Event source attribution (Eventbrite vs Ticketmaster)
+- [x] AI demand scoring for fetched events
+- [x] Event fetch router (tRPC procedure for manual fetch)
+- [x] Event fetch UI trigger with zip code input
+- [x] Import Events button on Events page

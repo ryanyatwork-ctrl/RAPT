@@ -25,7 +25,7 @@ import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import {
   LayoutDashboard, LogOut, PanelLeft, Calendar, TrendingUp,
-  Zap, Brain, Building2, BarChart3, CreditCard, TrendingUpIcon
+  Zap, Brain, Building2, BarChart3, CreditCard, TrendingUpIcon, Shield
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -42,6 +42,7 @@ const menuItems = [
   { icon: BarChart3, label: "Revenue Forecast", path: "/forecast" },
   { icon: Building2, label: "Properties", path: "/properties" },
   { icon: CreditCard, label: "Subscription", path: "/subscription" },
+  { icon: Shield, label: "Admin", path: "/admin", adminOnly: true },
 ];
 
 const SIDEBAR_WIDTH_KEY = "rapt-sidebar-width";
@@ -189,6 +190,9 @@ function DashboardLayoutContent({ children, setSidebarWidth }: DashboardLayoutCo
           <SidebarContent className="gap-0 py-2">
             <SidebarMenu className="px-2">
               {menuItems.map(item => {
+                if ((item as any).adminOnly && user?.role !== "admin") {
+                  return null;
+                }
                 const isActive = location === item.path;
                 return (
                   <SidebarMenuItem key={item.path}>

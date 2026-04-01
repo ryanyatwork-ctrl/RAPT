@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { PropertySelector } from "@/components/PropertySelector";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Zap, Plus, Trash2, Edit, MapPin, Calendar, ExternalLink, Search } from "lucide-react";
+import { Zap, Plus, Trash2, Edit, MapPin, Calendar, ExternalLink, Search, Download, Loader2 } from "lucide-react";
 
 const SOURCES = [
   { value: "manual", label: "Manual Entry" },
@@ -74,6 +74,7 @@ export default function Events() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<EventFormData>(defaultForm);
   const [search, setSearch] = useState("");
+  const [zipCode, setZipCode] = useState("");
 
   const { data: properties = [] } = trpc.property.list.useQuery();
 
@@ -113,6 +114,14 @@ export default function Events() {
   const deleteEvent = trpc.events.delete.useMutation({
     onSuccess: () => {
       toast.success("Event deleted");
+      utils.events.list.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const fetchEvents = trpc.eventFetch.fetchTicketmaster.useMutation({
+    onSuccess: (result) => {
+      toast.success(`${result.imported} events imported`);
       utils.events.list.invalidate();
     },
     onError: (e) => toast.error(e.message),
@@ -208,6 +217,31 @@ export default function Events() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        {selectedPropertyId && zipCode && (
+          <Button
+            variant="outline"
+            onClick={() => fetchEvents.mutate({ propertyId: selectedPropertyId, zipCode })}
+            disabled={fetchEvents.isPending || !zipCode}
+          >
+            {fetchEvents.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Fetching...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Import Events
+              </>
+            )}
+          </Button>
+        )}
+        <Input
+          placeholder="Zip code (for event import)"
+          value={zipCode}
+          onChange={e => setZipCode(e.target.value)}
+          className="h-9 w-32"
+        />
           <Input
             placeholder="Search events..."
             value={search}

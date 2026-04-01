@@ -15,6 +15,8 @@ import {
   updateUserSubscription,
 } from "./db";
 import { generateMonthPricing, calculateRevenueForecast } from "./pricingEngine";
+import { adminRouter, stripeRouter } from "./adminRouters";
+import { eventFetchRouter } from "./eventFetchRouter";
 
 const TIER_LIMITS = {
   free: { maxProperties: 1, aiListings: false, automation: false },
@@ -417,6 +419,9 @@ export const appRouter = router({
   events: eventsRouter,
   listing: listingRouter,
   subscription: subscriptionRouter,
+  admin: adminRouter,
+  stripe: stripeRouter,
+  eventFetch: eventFetchRouter,
 });
 
 export type AppRouter = typeof appRouter;
