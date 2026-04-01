@@ -169,6 +169,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    middlewareMode: false,
     host: true,
     allowedHosts: [
       ".manuspre.computer",
@@ -181,7 +182,7 @@ export default defineConfig({
     ],
     hmr: {
       protocol: "wss",
-      host: "3000-i8gg0ajq9utjv4l13qfcc-a8683fd7.us1.manus.computer",
+      host: typeof window !== "undefined" ? window.location.hostname : undefined,
       port: 443,
     },
     fs: {
