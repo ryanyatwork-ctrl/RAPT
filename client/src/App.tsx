@@ -5,34 +5,93 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
+import Calendar from "./pages/Calendar";
+import Pricing from "./pages/Pricing";
+import Events from "./pages/Events";
+import ListingOptimizer from "./pages/ListingOptimizer";
+import Properties from "./pages/Properties";
+import Forecast from "./pages/Forecast";
+import Subscription from "./pages/Subscription";
+import DashboardLayout from "./components/DashboardLayout";
 
-function Router() {
-  // make sure to consider if you need authentication for certain routes
+function AppRouter() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
+      {/* Public landing page */}
+      <Route path="/" component={Home} />
+
+      {/* Protected dashboard routes */}
+      <Route path="/dashboard">
+        {() => (
+          <DashboardLayout>
+            <Dashboard />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/calendar">
+        {() => (
+          <DashboardLayout>
+            <Calendar />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/pricing">
+        {() => (
+          <DashboardLayout>
+            <Pricing />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/events">
+        {() => (
+          <DashboardLayout>
+            <Events />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/listing">
+        {() => (
+          <DashboardLayout>
+            <ListingOptimizer />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/properties">
+        {() => (
+          <DashboardLayout>
+            <Properties />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/forecast">
+        {() => (
+          <DashboardLayout>
+            <Forecast />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/subscription">
+        {() => (
+          <DashboardLayout>
+            <Subscription />
+          </DashboardLayout>
+        )}
+      </Route>
+
+      <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
-          <Toaster />
-          <Router />
+          <Toaster richColors position="top-right" />
+          <AppRouter />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

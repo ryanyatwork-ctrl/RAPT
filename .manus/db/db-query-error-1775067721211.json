@@ -1,0 +1,13 @@
+{
+  "query": "CREATE TABLE `calendar_data` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`propertyId` int NOT NULL,\n\t`date` varchar(10) NOT NULL,\n\t`suggestedPrice` decimal(10,2),\n\t`demandScore` decimal(4,2),\n\t`demandLevel` enum('high','medium','low') DEFAULT 'medium',\n\t`isBooked` boolean DEFAULT false,\n\t`actualPrice` decimal(10,2),\n\t`priceReasons` json DEFAULT ('[]'),\n\t`notes` text,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `calendar_data_id` PRIMARY KEY(`id`)\n)",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3vRcCo4fXUpFtTX.root --database 5jhFo3P2SBKwkkR7wspyzw --execute CREATE TABLE `calendar_data` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`propertyId` int NOT NULL,\n\t`date` varchar(10) NOT NULL,\n\t`suggestedPrice` decimal(10,2),\n\t`demandScore` decimal(4,2),\n\t`demandLevel` enum('high','medium','low') DEFAULT 'medium',\n\t`isBooked` boolean DEFAULT false,\n\t`actualPrice` decimal(10,2),\n\t`priceReasons` json DEFAULT ('[]'),\n\t`notes` text,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `calendar_data_id` PRIMARY KEY(`id`)\n)",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1064 (42000) at line 1: You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 10 column 35 near \"'[]'),",
+    "\t`notes` text,",
+    "\t`createdAt` timestamp NOT NULL DEFAULT (now()),",
+    "\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,",
+    "\tCONSTRAINT `calendar_data_id` PRIMARY KEY(`id`)",
+    ")\""
+  ]
+}
