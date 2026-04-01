@@ -179,6 +179,11 @@ export default defineConfig({
       "localhost",
       "127.0.0.1",
     ],
+    hmr: {
+      protocol: "wss",
+      host: "3000-i8gg0ajq9utjv4l13qfcc-a8683fd7.us1.manus.computer",
+      port: 443,
+    },
     fs: {
       strict: true,
       deny: ["**/.*"],
