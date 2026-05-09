@@ -1,0 +1,3 @@
+http://gorapt.com/* https://gorapt.com/:splat 301
+http://www.gorapt.com/* https://gorapt.com/:splat 301
+https://www.gorapt.com/* https://gorapt.com/:splat 301
