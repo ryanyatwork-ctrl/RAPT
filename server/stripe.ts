@@ -1,8 +1,9 @@
 import Stripe from "stripe";
 import { ENV } from "./_core/env";
 
-export const stripe = new Stripe(ENV.stripeSecretKey);
-// Note: Using default API version from Stripe SDK
+export const stripe = ENV.stripeSecretKey
+  ? new Stripe(ENV.stripeSecretKey)
+  : (null as unknown as Stripe);
 
 export const STRIPE_PRODUCTS = {
   PRO: {
