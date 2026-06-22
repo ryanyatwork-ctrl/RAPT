@@ -12,6 +12,7 @@ import Events from "./pages/Events";
 import ListingOptimizer from "./pages/ListingOptimizer";
 import Properties from "./pages/Properties";
 import Forecast from "./pages/Forecast";
+import Performance from "./pages/Performance";
 import Subscription from "./pages/Subscription";
 import Admin from "./pages/Admin";
 import DashboardLayout from "./components/DashboardLayout";
@@ -69,6 +70,13 @@ function AppRouter() {
         {() => (
           <DashboardLayout>
             <Forecast />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/performance">
+        {() => (
+          <DashboardLayout>
+            <Performance />
           </DashboardLayout>
         )}
       </Route>
