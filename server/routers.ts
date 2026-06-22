@@ -9,12 +9,16 @@ import {
   getPropertiesByUserId, getPropertyById, createProperty, updateProperty, deleteProperty, countPropertiesByUserId,
   getPricingRuleByPropertyId, upsertPricingRule,
   getEventsByPropertyId, createEvent, updateEvent, deleteEvent,
-  getCalendarDataByPropertyAndMonth, upsertCalendarDay,
+  getCalendarDataByPropertyAndMonth, getCalendarDataByPropertyAndRange, upsertCalendarDay,
   getListingSuggestionsByPropertyId, createListingSuggestion, markSuggestionApplied,
   getSubscriptionByUserId, createOrUpdateSubscription,
   updateUserSubscription,
 } from "./db";
-import { generateMonthPricing, calculateRevenueForecast } from "./pricingEngine";
+import {
+  generateMonthPricing, calculateRevenueForecast,
+  calculateRevenueScore, calculatePerformance, findGapNights,
+} from "./pricingEngine";
+import type { InsertPricingRule } from "../drizzle/schema";
 import { adminRouter, stripeRouter } from "./adminRouters";
 import { eventFetchRouter } from "./eventFetchRouter";
 
@@ -112,6 +116,60 @@ const propertyRouter = router({
 
 // ─── Pricing Router ───────────────────────────────────────────────────────────
 
+function fmtDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Builds per-day pricing across an arbitrary date range and merges in booking
+ * actuals from the calendar (isBooked / actualPrice). Shared by the Revenue
+ * Score, Performance, and gap-night endpoints.
+ */
+async function buildRangePricing(propertyId: number, userId: number, start: Date, end: Date) {
+  const prop = await getPropertyById(propertyId, userId);
+  if (!prop) throw new TRPCError({ code: "NOT_FOUND" });
+  const rules = await getPricingRuleByPropertyId(propertyId);
+  if (!rules) throw new TRPCError({ code: "NOT_FOUND", message: "No pricing rules found" });
+
+  const startStr = fmtDate(start);
+  const endStr = fmtDate(end);
+  const eventsData = await getEventsByPropertyId(propertyId, start, end);
+  const cal = await getCalendarDataByPropertyAndRange(propertyId, startStr, endStr);
+  const calMap = new Map(cal.map(c => [c.date, c]));
+  const basePrice = parseFloat(String(prop.basePrice));
+
+  const days: Array<{
+    date: string;
+    suggestedPrice: number;
+    demandLevel: "high" | "medium" | "low";
+    isBooked: boolean;
+    actualPrice: number | null;
+  }> = [];
+
+  let y = start.getFullYear();
+  let m = start.getMonth() + 1;
+  const endY = end.getFullYear();
+  const endM = end.getMonth() + 1;
+  while (y < endY || (y === endY && m <= endM)) {
+    const monthPricing = generateMonthPricing(basePrice, y, m, eventsData, rules, start);
+    for (const d of monthPricing) {
+      if (d.date >= startStr && d.date <= endStr) {
+        const c = calMap.get(d.date);
+        days.push({
+          date: d.date,
+          suggestedPrice: d.suggestedPrice,
+          demandLevel: d.demandLevel,
+          isBooked: !!c?.isBooked,
+          actualPrice: c?.actualPrice != null ? parseFloat(String(c.actualPrice)) : null,
+        });
+      }
+    }
+    m += 1;
+    if (m > 12) { m = 1; y += 1; }
+  }
+  return { prop, rules, days };
+}
+
 const pricingRouter = router({
   getRules: protectedProcedure.input(z.object({ propertyId: z.number() })).query(async ({ ctx, input }) => {
     const prop = await getPropertyById(input.propertyId, ctx.user.id);
@@ -131,15 +189,43 @@ const pricingRouter = router({
     minPrice: z.number().positive().optional(),
     maxPrice: z.number().positive().optional(),
     peakMonths: z.array(z.number().int().min(1).max(12)).optional(),
+    // Strategy + advanced (Wheelhouse-inspired) controls
+    strategy: z.enum(["conservative", "recommended", "aggressive"]).optional(),
+    nearTermDiscount: z.number().min(0).max(0.9).optional(),
+    nearTermDays: z.number().int().min(0).max(60).optional(),
+    farOutPremium: z.number().min(0).max(1).optional(),
+    farOutDays: z.number().int().min(0).max(365).optional(),
+    monthlyAdjust: z.record(z.string(), z.number()).optional(), // { "<month 1-12>": percent }
+    weeklyDiscount: z.number().min(0).max(0.9).optional(),
+    monthlyDiscount: z.number().min(0).max(0.9).optional(),
+    minStay: z.number().int().min(1).max(30).optional(),
+    orphanGapDiscount: z.number().min(0).max(0.9).optional(),
   })).mutation(async ({ ctx, input }) => {
-    const { propertyId, peakMonths, ...rest } = input;
-    const prop = await getPropertyById(propertyId, ctx.user.id);
+    const prop = await getPropertyById(input.propertyId, ctx.user.id);
     if (!prop) throw new TRPCError({ code: "NOT_FOUND" });
-    await upsertPricingRule({
-      propertyId,
-      ...Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, v !== undefined ? String(v) : undefined]).filter(([, v]) => v !== undefined)),
-      ...(peakMonths ? { peakMonthsJson: JSON.stringify(peakMonths) } : {}),
-    } as any);
+
+    const patch: InsertPricingRule = { propertyId: input.propertyId };
+
+    // Decimal columns are stored as strings
+    const decimalFields = [
+      "weekendMultiplier", "holidayMultiplier", "highEventMultiplier", "mediumEventMultiplier",
+      "lowDemandMultiplier", "peakSeasonMultiplier", "offSeasonMultiplier", "minPrice", "maxPrice",
+      "nearTermDiscount", "farOutPremium", "weeklyDiscount", "monthlyDiscount", "orphanGapDiscount",
+    ] as const;
+    for (const f of decimalFields) {
+      const v = input[f];
+      if (v !== undefined) (patch as Record<string, unknown>)[f] = String(v);
+    }
+    // Integer columns
+    for (const f of ["nearTermDays", "farOutDays", "minStay"] as const) {
+      const v = input[f];
+      if (v !== undefined) (patch as Record<string, unknown>)[f] = v;
+    }
+    if (input.strategy !== undefined) patch.strategy = input.strategy;
+    if (input.peakMonths !== undefined) patch.peakMonthsJson = JSON.stringify(input.peakMonths);
+    if (input.monthlyAdjust !== undefined) patch.monthlyAdjustJson = JSON.stringify(input.monthlyAdjust);
+
+    await upsertPricingRule(patch);
     return { success: true };
   }),
 
@@ -190,6 +276,54 @@ const pricingRouter = router({
       months.push({ year: y, month: m, ...mForecast });
     }
     return { current: forecast, months };
+  }),
+
+  // RAPT Revenue Score — 0-100 health number over a forward window
+  getRevenueScore: protectedProcedure.input(z.object({
+    propertyId: z.number(),
+    windowDays: z.number().int().min(7).max(365).optional().default(90),
+  })).query(async ({ ctx, input }) => {
+    const start = new Date();
+    const end = new Date(start.getTime() + input.windowDays * 24 * 60 * 60 * 1000);
+    const { days } = await buildRangePricing(input.propertyId, ctx.user.id, start, end);
+    return calculateRevenueScore(days);
+  }),
+
+  // Historical performance KPIs (Occupancy, ADR, RevPAR, Revenue) from actuals
+  getPerformance: protectedProcedure.input(z.object({
+    propertyId: z.number(),
+    months: z.number().int().min(1).max(12).optional().default(6),
+  })).query(async ({ ctx, input }) => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - (input.months - 1), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0); // end of current month
+    const { days } = await buildRangePricing(input.propertyId, ctx.user.id, start, end);
+
+    const overall = calculatePerformance(days);
+    // Per-month breakdown for charting
+    const byMonth = new Map<string, typeof days>();
+    for (const d of days) {
+      const key = d.date.slice(0, 7); // YYYY-MM
+      if (!byMonth.has(key)) byMonth.set(key, []);
+      byMonth.get(key)!.push(d);
+    }
+    const monthly = Array.from(byMonth.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, mdays]) => ({ month: key, ...calculatePerformance(mdays) }));
+
+    return { overall, monthly };
+  }),
+
+  // Orphan / gap-night opportunities for a given month
+  getGapNights: protectedProcedure.input(z.object({
+    propertyId: z.number(),
+    year: z.number().int(),
+    month: z.number().int().min(1).max(12),
+  })).query(async ({ ctx, input }) => {
+    const start = new Date(input.year, input.month - 1, 1);
+    const end = new Date(input.year, input.month, 0);
+    const { rules, days } = await buildRangePricing(input.propertyId, ctx.user.id, start, end);
+    return findGapNights(days, rules);
   }),
 });
 

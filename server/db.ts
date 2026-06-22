@@ -166,6 +166,14 @@ export async function getCalendarDataByPropertyAndMonth(propertyId: number, year
   );
 }
 
+export async function getCalendarDataByPropertyAndRange(propertyId: number, startDate: string, endDate: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(calendarData).where(
+    and(eq(calendarData.propertyId, propertyId), gte(calendarData.date, startDate), lte(calendarData.date, endDate))
+  );
+}
+
 export async function upsertCalendarDay(data: InsertCalendarData) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
