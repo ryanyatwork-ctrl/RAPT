@@ -22,6 +22,8 @@
 13. [Plans & Feature Limits at a Glance](#13-plans--feature-limits-at-a-glance)
 14. [How the Pricing Engine Works](#14-how-the-pricing-engine-works)
 15. [Frequently Asked Questions](#15-frequently-asked-questions)
+16. [Advanced Pricing Controls & RAPT Revenue Score](#16-advanced-pricing-controls--rapt-revenue-score)
+17. [Performance](#17-performance)
 
 ---
 
@@ -85,6 +87,7 @@ After signing in, all app pages share a left-side navigation panel.
 │  ⚡  Event Intelligence  │
 │  🧠  AI Listing         │
 │  📊  Revenue Forecast   │
+│  ⏱  Performance         │
 │  🏠  Properties         │
 │  💳  Subscription       │
 │  🛡  Admin              │  ← visible to admin only
@@ -1062,4 +1065,70 @@ A: Pro and Advanced subscribers get priority support. Reach out via the contact 
 
 ---
 
-*Guide last updated: June 2026 — matches getrapt.app source at commit `026cd4c`*
+## 16. Advanced Pricing Controls & RAPT Revenue Score
+
+Beyond the seven demand multipliers covered in [Section 6](#6-pricing-engine), the **Pricing Engine** page includes a layer of advanced, market-inspired controls. All of them are optional — leave them at their defaults and pricing behaves exactly as before.
+
+### 16.1 Pricing Strategy Dial
+
+At the top of the Pricing Engine page, choose your overall **posture**. This scales every suggested price up or down *before* the min/max caps are applied:
+
+| Strategy | Effect | Best for |
+|----------|--------|----------|
+| **Conservative** | −8% on every suggestion | Prioritizing occupancy; steady urban markets where rates don't swing much |
+| **Recommended** | Data-driven default (no change) | Most hosts, most of the time |
+| **Aggressive** | +8% on every suggestion | Vacation markets with strong seasonal peaks where guests will pay a premium |
+
+The live **Price Preview** panel updates instantly as you switch strategies.
+
+### 16.2 Time-Based Pricing
+
+Pricing now responds to **how far away a date is** ("lead time"), not just the calendar:
+
+- **Near-Term Fill Discount** — automatically discounts dates that are still vacant within a window you set (e.g. the next 7 days), nudging last-minute bookings to fill the calendar.
+- **Far-Out Demand Premium** — adds a premium to prime dates far in the future (e.g. 90+ days out), where early bookers will pay more for certainty.
+
+Each has its own percentage and a day-threshold input.
+
+### 16.3 Length-of-Stay Discounts
+
+Reward longer bookings directly in RAPT (set these here instead of in Airbnb to avoid double-discounting):
+
+- **Weekly Discount** — applied to stays of **7+ nights**.
+- **Monthly Discount** — applied to stays of **28+ nights** (great for mid-term guests).
+
+### 16.4 Minimum Stay & Gap-Night Discount
+
+Set a **Minimum Stay**. When a short run of vacant nights gets wedged between two bookings — too short to satisfy that minimum — RAPT flags those nights as **orphan / gap nights** and suggests a **Gap-Night Discount** to make them attractive enough to fill.
+
+### 16.5 RAPT Revenue Score
+
+The **Dashboard** now leads with a single **0–100 Revenue Score** for the next 90 days — a quick read on how healthy your pricing and booking pace are. With no external market feed required, it benchmarks your listing against **its own data-driven potential**:
+
+| Component | Weight | What it measures |
+|-----------|--------|------------------|
+| **Booking Pace** | 60% | Your booked nights vs. the occupancy RAPT expects for those demand levels |
+| **Price Realization** | 40% | The prices you actually captured vs. RAPT's suggestions |
+
+The score carries a rating — **Excellent (85+)**, **Good (70+)**, **Fair (50+)**, or **Needs Attention** — plus a plain-English summary and progress bars for each component.
+
+---
+
+## 17. Performance
+
+The **Performance** page (sidebar → *Performance*) reports how your listing has actually done over the **last 6 months**, using the industry-standard hospitality KPIs:
+
+| Metric | Meaning |
+|--------|---------|
+| **Occupancy** | Booked nights ÷ available nights |
+| **ADR** | Average Daily Rate — average price of *booked* nights |
+| **RevPAR** | Revenue Per Available Night — revenue ÷ all available nights |
+| **Revenue** | Total booked revenue over the window |
+
+Below the KPI cards, a **Revenue & Occupancy Trend** chart plots monthly booked revenue with an occupancy overlay, followed by a **Monthly Breakdown** table.
+
+> **Note:** Performance reflects *actual* results, so the metrics populate as nights are marked **booked** (with their real nightly rate) on the calendar. Until bookings are recorded, the page shows zeros with a reminder of how the data fills in.
+
+---
+
+*Guide last updated: June 2026 — getrapt.app source, with the advanced pricing, Revenue Score, and Performance additions*
