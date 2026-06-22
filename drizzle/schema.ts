@@ -68,6 +68,21 @@ export const pricingRules = mysqlTable("pricing_rules", {
   minPrice: decimal("minPrice", { precision: 10, scale: 2 }),
   maxPrice: decimal("maxPrice", { precision: 10, scale: 2 }),
   peakMonthsJson: text("peakMonthsJson"),
+  // Strategy dial: how aggressively to price vs. the data-driven recommendation
+  strategy: mysqlEnum("strategy", ["conservative", "recommended", "aggressive"]).default("recommended"),
+  // Time-based (lead-time) pricing: near-term fill discount + far-out premium
+  nearTermDiscount: decimal("nearTermDiscount", { precision: 4, scale: 2 }).default("0.00"),
+  nearTermDays: int("nearTermDays").default(7),
+  farOutPremium: decimal("farOutPremium", { precision: 4, scale: 2 }).default("0.00"),
+  farOutDays: int("farOutDays").default(90),
+  // Month-by-month seasonality curve: { "<month 1-12>": <percent> }
+  monthlyAdjustJson: text("monthlyAdjustJson"),
+  // Length-of-stay discounts (Airbnb-style)
+  weeklyDiscount: decimal("weeklyDiscount", { precision: 4, scale: 2 }).default("0.00"),
+  monthlyDiscount: decimal("monthlyDiscount", { precision: 4, scale: 2 }).default("0.00"),
+  // Orphan / gap-night handling
+  minStay: int("minStay").default(1),
+  orphanGapDiscount: decimal("orphanGapDiscount", { precision: 4, scale: 2 }).default("0.00"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
