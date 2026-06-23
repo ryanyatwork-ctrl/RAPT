@@ -127,6 +127,7 @@ export default function Events() {
     onError: (e) => toast.error(e.message),
   });
 
+
   const handleSubmit = () => {
     if (!selectedPropertyId || !form.title || !form.startDate || !form.endDate) {
       toast.error("Please fill in all required fields");

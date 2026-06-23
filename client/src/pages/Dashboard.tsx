@@ -7,7 +7,7 @@ import { PropertySelector } from "@/components/PropertySelector";
 import { useLocation } from "wouter";
 import {
   TrendingUp, Calendar, Zap, DollarSign, BarChart3,
-  ArrowUpRight, MapPin, Star, AlertCircle, ChevronRight, Building2
+  ArrowUpRight, MapPin, Star, AlertCircle, ChevronRight, Building2, Gauge
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 
@@ -38,6 +38,11 @@ export default function Dashboard() {
 
   const { data: forecast } = trpc.pricing.getForecast.useQuery(
     { propertyId: selectedPropertyId!, year, month },
+    { enabled: !!selectedPropertyId }
+  );
+
+  const { data: revenueScore } = trpc.pricing.getRevenueScore.useQuery(
+    { propertyId: selectedPropertyId!, windowDays: 90 },
     { enabled: !!selectedPropertyId }
   );
 
@@ -106,6 +111,55 @@ export default function Dashboard() {
             </Badge>
             <span className="text-sm font-semibold text-primary">${selectedProperty.basePrice}/night base</span>
           </div>
+
+          {/* RAPT Revenue Score */}
+          {revenueScore && (() => {
+            const rating = revenueScore.rating;
+            const tone =
+              rating === "excellent" ? { text: "text-green-400", bar: "bg-green-400", ring: "border-green-500/40", label: "Excellent" }
+              : rating === "good" ? { text: "text-primary", bar: "bg-primary", ring: "border-primary/40", label: "Good" }
+              : rating === "fair" ? { text: "text-yellow-400", bar: "bg-yellow-400", ring: "border-yellow-500/40", label: "Fair" }
+              : { text: "text-red-400", bar: "bg-red-400", ring: "border-red-500/40", label: "Needs Attention" };
+            return (
+              <Card className={`border ${tone.ring}`}>
+                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-5">
+                  <div className={`flex flex-col items-center justify-center rounded-xl border ${tone.ring} bg-muted/20 px-5 py-3 min-w-[110px]`}>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Gauge className="w-3.5 h-3.5" /> RAPT Score
+                    </div>
+                    <div className={`text-4xl font-extrabold ${tone.text}`}>{revenueScore.score}</div>
+                    <div className={`text-xs font-medium ${tone.text}`}>{tone.label}</div>
+                  </div>
+                  <div className="flex-1 space-y-3 w-full">
+                    <p className="text-sm text-muted-foreground">{revenueScore.summary}</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">Booking Pace</span>
+                          <span className="font-semibold">{revenueScore.occupancyPace}%</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div className={`h-full ${tone.bar}`} style={{ width: `${revenueScore.occupancyPace}%` }} />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">Price Realization</span>
+                          <span className="font-semibold">{revenueScore.priceRealization}%</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div className={`h-full ${tone.bar}`} style={{ width: `${revenueScore.priceRealization}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {revenueScore.bookedNights} of {revenueScore.totalNights} upcoming nights booked · benchmarked against this listing's 90-day revenue potential
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Stats cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -25,7 +25,7 @@ import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import {
   LayoutDashboard, LogOut, PanelLeft, Calendar, TrendingUp,
-  Zap, Brain, Building2, BarChart3, CreditCard, TrendingUpIcon, Shield
+  Zap, Brain, Building2, BarChart3, CreditCard, TrendingUpIcon, Shield, Gauge
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -40,6 +40,7 @@ const menuItems = [
   { icon: Zap, label: "Event Intelligence", path: "/events" },
   { icon: Brain, label: "AI Listing", path: "/listing" },
   { icon: BarChart3, label: "Revenue Forecast", path: "/forecast" },
+  { icon: Gauge, label: "Performance", path: "/performance" },
   { icon: Building2, label: "Properties", path: "/properties" },
   { icon: CreditCard, label: "Subscription", path: "/subscription" },
   { icon: Shield, label: "Admin", path: "/admin", adminOnly: true },
