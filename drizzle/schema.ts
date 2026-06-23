@@ -139,6 +139,11 @@ export const listingSuggestions = mysqlTable("listing_suggestions", {
   guestType: varchar("guestType", { length: 100 }),
   eventContextJson: text("eventContextJson"),
   isApplied: boolean("isApplied").default(false),
+  // Richer AI output fields
+  titleVariantsJson: text("titleVariantsJson"),
+  hook: text("hook"),
+  subtitle: text("subtitle"),
+  seoKeywordsJson: text("seoKeywordsJson"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

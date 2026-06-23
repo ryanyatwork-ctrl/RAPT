@@ -428,47 +428,69 @@ const listingRouter = router({
     const eventNames = upcomingEvents.slice(0, 5).map(e => e.title);
     const allEvents = [...input.focusEvents, ...eventNames].slice(0, 5);
 
-    const prompt = `You are an expert Airbnb listing copywriter. Generate an optimized listing title and description for a short-term rental property.
+    const season = (() => {
+      const m = new Date().getMonth() + 1;
+      if (m >= 3 && m <= 5) return "spring";
+      if (m >= 6 && m <= 8) return "summer";
+      if (m >= 9 && m <= 11) return "fall";
+      return "winter";
+    })();
+
+    const prompt = `You are a world-class Airbnb listing copywriter. Your listings convert browsers into bookers by being specific, evocative, and tailored to the guest's motivation.
 
 Property Details:
 - Name: ${prop.name}
 - Location: ${prop.city || ''}, ${prop.state || ''} ${prop.country || 'US'}
-- Type: ${prop.propertyType}
+- Type: ${prop.propertyType || 'vacation rental'}
 - Bedrooms: ${prop.bedrooms}, Bathrooms: ${prop.bathrooms}, Max Guests: ${prop.maxGuests}
-- Description: ${prop.description || 'A comfortable rental property'}
-- Features: ${input.propertyFeatures.join(', ') || 'standard amenities'}
+- Standout Features: ${input.propertyFeatures.join(', ') || 'comfortable amenities'}
+- Property Context: ${prop.description || ''}
 
-Target Guest Type: ${input.guestType}
-Upcoming Local Events: ${allEvents.length > 0 ? allEvents.join(', ') : 'general tourism'}
+Target Guest Profile: ${input.guestType}
+Current Season: ${season}
+Upcoming Local Events & Activities: ${allEvents.length > 0 ? allEvents.join(', ') : 'general tourism, outdoor activities, local dining'}
 
-Requirements:
-1. Title: 60-80 characters, catchy, include location and key appeal
-2. Description: 150-200 words, highlight the property's unique value for the target guest, mention relevant local events/activities, use engaging language
-3. Make it feel personal and inviting, not generic
+Generate a complete high-converting listing package with these exact fields:
 
-Respond in JSON format:
-{
-  "title": "...",
-  "description": "..."
-}`;
+title: Primary title (50–65 chars). Lead with the strongest hook — specific location + top feature or experience. Never use "cozy", "charming", "beautiful", "spacious", "stunning", or "perfect". Be concrete and vivid.
+
+titleVariants: Exactly 3 alternative titles (each 50–65 chars) with distinct angles:
+  [0] Event/activity-focused — reference a specific local event or activity from the list above
+  [1] Amenity-focused — lead with the single best physical feature of the property
+  [2] Area/vibe-focused — capture the neighborhood or region's character and lifestyle
+
+hook: One sentence, 15–25 words. The single most compelling reason to book this property. Should make someone pause mid-scroll.
+
+subtitle: 10–15 words pairing the property type with the local lifestyle or experience.
+
+description: 3 paragraphs, 250–350 words total.
+  Paragraph 1 (Arrival): Paint what guests experience the moment they arrive. Sensory details. Make them feel they're already there.
+  Paragraph 2 (The Space): Tour the property's standout features as if guiding a guest through. Be specific — exact features, not vague praise.
+  Paragraph 3 (The Area): Connect the location to the target guest's interests. Reference the upcoming events or seasonal activities. End with a soft call to action.
+
+seoKeywords: 6–8 search terms guests would type to find this property. Mix location terms, amenity terms, and guest-type terms.`;
 
     const response = await invokeLLM({
       messages: [
-        { role: "system", content: "You are an expert short-term rental listing copywriter. Always respond with valid JSON." },
+        { role: "system", content: "You are an expert short-term rental listing copywriter. Respond only with the requested JSON." },
         { role: "user", content: prompt },
       ],
       response_format: {
         type: "json_schema",
         json_schema: {
-          name: "listing_suggestion",
+          name: "listing_package",
           strict: true,
           schema: {
             type: "object",
             properties: {
               title: { type: "string" },
+              titleVariants: { type: "array", items: { type: "string" } },
+              hook: { type: "string" },
+              subtitle: { type: "string" },
               description: { type: "string" },
+              seoKeywords: { type: "array", items: { type: "string" } },
             },
-            required: ["title", "description"],
+            required: ["title", "titleVariants", "hook", "subtitle", "description", "seoKeywords"],
             additionalProperties: false,
           },
         },
@@ -479,7 +501,14 @@ Respond in JSON format:
     const content = typeof rawContent === 'string' ? rawContent : null;
     if (!content) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "AI generation failed" });
 
-    const parsed = JSON.parse(content) as { title: string; description: string };
+    const parsed = JSON.parse(content) as {
+      title: string;
+      titleVariants: string[];
+      hook: string;
+      subtitle: string;
+      description: string;
+      seoKeywords: string[];
+    };
 
     await createListingSuggestion({
       propertyId: input.propertyId,
@@ -487,9 +516,20 @@ Respond in JSON format:
       generatedDescription: parsed.description,
       guestType: input.guestType,
       eventContextJson: JSON.stringify(allEvents),
+      titleVariantsJson: JSON.stringify(parsed.titleVariants),
+      hook: parsed.hook,
+      subtitle: parsed.subtitle,
+      seoKeywordsJson: JSON.stringify(parsed.seoKeywords),
     });
 
-    return { title: parsed.title, description: parsed.description };
+    return {
+      title: parsed.title,
+      titleVariants: parsed.titleVariants,
+      hook: parsed.hook,
+      subtitle: parsed.subtitle,
+      description: parsed.description,
+      seoKeywords: parsed.seoKeywords,
+    };
   }),
 
   markApplied: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {

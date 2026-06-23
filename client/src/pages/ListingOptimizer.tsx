@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PropertySelector } from "@/components/PropertySelector";
 import { toast } from "sonner";
-import { Brain, Sparkles, Copy, Check, Lock, ArrowUpRight, RefreshCw, History } from "lucide-react";
+import { Brain, Sparkles, Copy, Check, Lock, ArrowUpRight, RefreshCw, History, Zap, Tag, Search } from "lucide-react";
 import { format } from "date-fns";
 import { useLocation } from "wouter";
 
@@ -23,11 +23,35 @@ const GUEST_TYPES = [
   { value: "groups", label: "Groups & Friends" },
 ];
 
+type GenerateResult = {
+  title: string;
+  titleVariants: string[];
+  hook: string;
+  subtitle: string;
+  description: string;
+  seoKeywords: string[];
+};
+
+type DisplaySuggestion = {
+  id?: number;
+  title: string;
+  titleVariants: string[];
+  hook: string;
+  subtitle: string;
+  description: string;
+  seoKeywords: string[];
+  events: string[];
+  isApplied: boolean;
+  createdAt?: Date | string;
+  guestType?: string;
+};
+
 export default function ListingOptimizer() {
   const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
   const [guestType, setGuestType] = useState("general");
   const [features, setFeatures] = useState("");
   const [focusEvents, setFocusEvents] = useState("");
+  const [selectedVariant, setSelectedVariant] = useState<number | null>(null); // null = primary
   const [copiedTitle, setCopiedTitle] = useState(false);
   const [copiedDesc, setCopiedDesc] = useState(false);
   const [, navigate] = useLocation();
@@ -41,6 +65,10 @@ export default function ListingOptimizer() {
     }
   }, [properties, selectedPropertyId]);
 
+  useEffect(() => {
+    setSelectedVariant(null);
+  }, [selectedPropertyId]);
+
   const utils = trpc.useUtils();
 
   const { data: suggestions = [], isLoading: loadingSuggestions } = trpc.listing.getSuggestions.useQuery(
@@ -51,6 +79,7 @@ export default function ListingOptimizer() {
   const generate = trpc.listing.generate.useMutation({
     onSuccess: () => {
       toast.success("AI listing generated!");
+      setSelectedVariant(null);
       utils.listing.getSuggestions.invalidate();
     },
     onError: (e) => toast.error(e.message),
@@ -67,6 +96,52 @@ export default function ListingOptimizer() {
   const isLocked = tier === "free";
 
   const latestSuggestion = suggestions[0];
+
+  // Derive unified display object from immediate generate result or DB suggestion
+  const displaySuggestion = useMemo<DisplaySuggestion | null>(() => {
+    if (generate.isSuccess && generate.data) {
+      const d = generate.data as GenerateResult;
+      return {
+        id: latestSuggestion?.id,
+        title: d.title,
+        titleVariants: d.titleVariants ?? [],
+        hook: d.hook ?? "",
+        subtitle: d.subtitle ?? "",
+        description: d.description,
+        seoKeywords: d.seoKeywords ?? [],
+        events: latestSuggestion?.eventContextJson
+          ? (JSON.parse(latestSuggestion.eventContextJson) as string[])
+          : [],
+        isApplied: false,
+        createdAt: latestSuggestion?.createdAt,
+        guestType: latestSuggestion?.guestType ?? undefined,
+      };
+    }
+    if (!latestSuggestion) return null;
+    return {
+      id: latestSuggestion.id,
+      title: latestSuggestion.generatedTitle ?? "",
+      titleVariants: latestSuggestion.titleVariantsJson
+        ? (JSON.parse(latestSuggestion.titleVariantsJson) as string[])
+        : [],
+      hook: latestSuggestion.hook ?? "",
+      subtitle: latestSuggestion.subtitle ?? "",
+      description: latestSuggestion.generatedDescription ?? "",
+      seoKeywords: latestSuggestion.seoKeywordsJson
+        ? (JSON.parse(latestSuggestion.seoKeywordsJson) as string[])
+        : [],
+      events: latestSuggestion.eventContextJson
+        ? (JSON.parse(latestSuggestion.eventContextJson) as string[])
+        : [],
+      isApplied: latestSuggestion.isApplied ?? false,
+      createdAt: latestSuggestion.createdAt,
+      guestType: latestSuggestion.guestType ?? undefined,
+    };
+  }, [generate.isSuccess, generate.data, latestSuggestion]);
+
+  const activeTitle = selectedVariant !== null
+    ? (displaySuggestion?.titleVariants[selectedVariant] ?? displaySuggestion?.title ?? "")
+    : (displaySuggestion?.title ?? "");
 
   const handleGenerate = () => {
     if (!selectedPropertyId) return;
@@ -96,7 +171,7 @@ export default function ListingOptimizer() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">AI Listing Optimizer</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Generate compelling titles and descriptions for your listings</p>
+          <p className="text-muted-foreground text-sm mt-0.5">Generate compelling titles, hooks, and descriptions powered by Gemini</p>
         </div>
         <PropertySelector value={selectedPropertyId} onChange={setSelectedPropertyId} />
       </div>
@@ -110,7 +185,7 @@ export default function ListingOptimizer() {
             </div>
             <h3 className="text-xl font-bold mb-2">AI Listing Optimizer</h3>
             <p className="text-muted-foreground text-sm mb-6 max-w-sm">
-              Generate AI-powered listing titles and descriptions tailored to upcoming events and your target guest type. Available on Pro and Advanced plans.
+              Generate AI-powered listing titles, hooks, descriptions, and SEO keywords tailored to upcoming events and your target guest. Available on Pro and Advanced plans.
             </p>
             <Button onClick={() => navigate("/subscription")}>
               Upgrade to Pro — $14/mo
@@ -182,26 +257,45 @@ export default function ListingOptimizer() {
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4 mr-2" />
-                      Generate Listing Copy
+                      Generate Listing Package
                     </>
                   )}
                 </Button>
               </CardContent>
             </Card>
+
+            {/* What you get card */}
+            <Card className="border-dashed border-border/50">
+              <CardContent className="p-4 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">What's generated</p>
+                {[
+                  { icon: Sparkles, label: "Primary title + 3 angle variants" },
+                  { icon: Zap, label: "One-liner hook to stop the scroll" },
+                  { icon: Tag, label: "Subtitle & full 3-paragraph description" },
+                  { icon: Search, label: "6–8 SEO keywords" },
+                ].map(({ icon: Icon, label }) => (
+                  <div key={label} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Icon className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                    {label}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Latest result */}
+          {/* Result panel */}
           <div className="space-y-4">
             {generate.isPending && (
               <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
+                <CardContent className="flex flex-col items-center justify-center py-16">
                   <Brain className="w-10 h-10 text-primary mb-3 animate-pulse" />
-                  <p className="text-sm text-muted-foreground">AI is crafting your listing copy...</p>
+                  <p className="text-sm font-medium">Crafting your listing package...</p>
+                  <p className="text-xs text-muted-foreground mt-1">Gemini is writing your copy</p>
                 </CardContent>
               </Card>
             )}
 
-            {!generate.isPending && latestSuggestion && (
+            {!generate.isPending && displaySuggestion && (
               <Card className="border-primary/30">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -210,17 +304,34 @@ export default function ListingOptimizer() {
                       Latest Generation
                     </CardTitle>
                     <div className="flex items-center gap-2">
-                      {latestSuggestion.isApplied && (
+                      {displaySuggestion.isApplied && (
                         <Badge variant="outline" className="text-xs text-primary border-primary/30">Applied</Badge>
                       )}
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(latestSuggestion.createdAt), "MMM d, h:mm a")}
-                      </span>
+                      {displaySuggestion.createdAt && (
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(displaySuggestion.createdAt), "MMM d, h:mm a")}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Title */}
+                <CardContent className="space-y-5">
+
+                  {/* Hook callout */}
+                  {displaySuggestion.hook && (
+                    <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-3">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Zap className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">Hook</span>
+                      </div>
+                      <p className="text-sm font-medium leading-snug">{displaySuggestion.hook}</p>
+                      {displaySuggestion.subtitle && (
+                        <p className="text-xs text-muted-foreground mt-1">{displaySuggestion.subtitle}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Title with variants */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs uppercase tracking-wide text-muted-foreground">Listing Title</Label>
@@ -228,18 +339,48 @@ export default function ListingOptimizer() {
                         variant="ghost"
                         size="sm"
                         className="h-6 px-2 text-xs"
-                        onClick={() => copyToClipboard(latestSuggestion.generatedTitle || "", "title")}
+                        onClick={() => copyToClipboard(activeTitle, "title")}
                       >
                         {copiedTitle ? <Check className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
                         {copiedTitle ? "Copied!" : "Copy"}
                       </Button>
                     </div>
+
+                    {/* Variant selector */}
+                    {displaySuggestion.titleVariants.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        <button
+                          onClick={() => setSelectedVariant(null)}
+                          className={`text-[11px] px-2 py-1 rounded-md border transition-colors ${
+                            selectedVariant === null
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "border-border text-muted-foreground hover:border-primary/50"
+                          }`}
+                        >
+                          Primary
+                        </button>
+                        {["Event", "Amenity", "Vibe"].map((label, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setSelectedVariant(i)}
+                            className={`text-[11px] px-2 py-1 rounded-md border transition-colors ${
+                              selectedVariant === i
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "border-border text-muted-foreground hover:border-primary/50"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     <div className="p-3 rounded-lg bg-muted/30 border border-border text-sm font-medium leading-relaxed">
-                      {latestSuggestion.generatedTitle}
+                      {activeTitle}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {latestSuggestion.generatedTitle?.length || 0} characters
-                      {(latestSuggestion.generatedTitle?.length || 0) > 80 && (
+                      {activeTitle.length} characters
+                      {activeTitle.length > 80 && (
                         <span className="text-yellow-400 ml-2">⚠ Airbnb recommends under 80 chars</span>
                       )}
                     </div>
@@ -253,38 +394,53 @@ export default function ListingOptimizer() {
                         variant="ghost"
                         size="sm"
                         className="h-6 px-2 text-xs"
-                        onClick={() => copyToClipboard(latestSuggestion.generatedDescription || "", "desc")}
+                        onClick={() => copyToClipboard(displaySuggestion.description, "desc")}
                       >
                         {copiedDesc ? <Check className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
                         {copiedDesc ? "Copied!" : "Copy"}
                       </Button>
                     </div>
                     <Textarea
-                      value={latestSuggestion.generatedDescription || ""}
+                      value={displaySuggestion.description}
                       readOnly
-                      rows={6}
+                      rows={7}
                       className="resize-none text-sm bg-muted/30"
                     />
                   </div>
 
-                  {/* Context tags */}
-                  {latestSuggestion.eventContextJson && (
-                    <div>
-                      <Label className="text-xs uppercase tracking-wide text-muted-foreground mb-2 block">Events Referenced</Label>
+                  {/* SEO Keywords */}
+                  {displaySuggestion.seoKeywords.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5">
+                        <Search className="w-3.5 h-3.5 text-muted-foreground" />
+                        <Label className="text-xs uppercase tracking-wide text-muted-foreground">SEO Keywords</Label>
+                      </div>
                       <div className="flex flex-wrap gap-1.5">
-                        {(JSON.parse(latestSuggestion.eventContextJson) as string[]).map((e, i) => (
+                        {displaySuggestion.seoKeywords.map((kw, i) => (
+                          <Badge key={i} variant="secondary" className="text-xs">{kw}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Events referenced */}
+                  {displaySuggestion.events.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-xs uppercase tracking-wide text-muted-foreground block">Events Referenced</Label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {displaySuggestion.events.map((e, i) => (
                           <Badge key={i} variant="outline" className="text-xs">{e}</Badge>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {!latestSuggestion.isApplied && (
+                  {!displaySuggestion.isApplied && displaySuggestion.id && (
                     <Button
                       variant="outline"
                       size="sm"
                       className="w-full"
-                      onClick={() => markApplied.mutate({ id: latestSuggestion.id! })}
+                      onClick={() => markApplied.mutate({ id: displaySuggestion.id! })}
                     >
                       <Check className="w-4 h-4 mr-2" />
                       Mark as Applied to Listing
@@ -294,12 +450,12 @@ export default function ListingOptimizer() {
               </Card>
             )}
 
-            {!generate.isPending && !latestSuggestion && (
+            {!generate.isPending && !displaySuggestion && !loadingSuggestions && (
               <Card className="border-dashed">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <Brain className="w-10 h-10 text-muted-foreground mb-3 opacity-30" />
                   <p className="text-sm text-muted-foreground">
-                    Configure your settings and click "Generate" to create AI-optimized listing copy
+                    Configure your settings and click "Generate" to create your AI listing package
                   </p>
                 </CardContent>
               </Card>

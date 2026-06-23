@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { PropertySelector } from "@/components/PropertySelector";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Zap, Plus, Trash2, Edit, MapPin, Calendar, ExternalLink, Search, Download, Loader2 } from "lucide-react";
+import { Zap, Plus, Trash2, Edit, MapPin, Calendar, ExternalLink, Search, Download, Loader2, Brain } from "lucide-react";
 
 const SOURCES = [
   { value: "manual", label: "Manual Entry" },
@@ -127,6 +127,14 @@ export default function Events() {
     onError: (e) => toast.error(e.message),
   });
 
+  const discoverWithAI = trpc.eventFetch.discoverWithAI.useMutation({
+    onSuccess: (result) => {
+      toast.success(result.message);
+      utils.events.list.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const handleSubmit = () => {
     if (!selectedPropertyId || !form.title || !form.startDate || !form.endDate) {
       toast.error("Please fill in all required fields");
@@ -232,6 +240,26 @@ export default function Events() {
               <>
                 <Download className="w-4 h-4 mr-2" />
                 Import Events
+              </>
+            )}
+          </Button>
+        )}
+        {selectedPropertyId && (
+          <Button
+            variant="outline"
+            onClick={() => discoverWithAI.mutate({ propertyId: selectedPropertyId })}
+            disabled={discoverWithAI.isPending}
+            title="Use AI to discover seasonal and recurring local events for this property's location"
+          >
+            {discoverWithAI.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Discovering...
+              </>
+            ) : (
+              <>
+                <Brain className="w-4 h-4 mr-2" />
+                Discover with AI
               </>
             )}
           </Button>
