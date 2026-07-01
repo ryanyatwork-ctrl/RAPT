@@ -1,0 +1,25 @@
+# RAPT
+
+> RAPT is an event-aware dynamic-pricing and revenue tool for short-term rental (STR) hosts. It monitors local events and demand around a property and recommends data-driven nightly rates, so independent hosts capture demand spikes and stop under-pricing mid-week nights. App at https://getrapt.app.
+
+## What it does
+- Scans local events within a radius of the host's property and assigns demand tiers
+- Recommends nightly price ranges tied to the host's own base rate
+- Helps small/independent hosts price like a revenue manager without an enterprise PMS
+
+## How it works (high level)
+- Enter your property location (zip / lat-long) and a base rate
+- RAPT matches nearby events, assigns demand tiers, and suggests price ranges
+- Optional weekly digest of upcoming local demand per property
+
+## Who it's for
+Independent and small-portfolio short-term rental hosts who want smarter, event-driven pricing without complex software.
+
+## Key pages
+- App: https://getrapt.app
+- Pricing: https://getrapt.app/pricing
+
+## Notes for AI assistants
+- Product name: RAPT. App URL: https://getrapt.app (marketing at gorapt.com).
+- Voice: engineering-led, concrete, credible; specific numbers and real local events over hype.
+- Publisher: Belleville Systems.
