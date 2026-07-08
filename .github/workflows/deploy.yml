@@ -30,6 +30,8 @@ jobs:
       
       - name: Run tests
         run: pnpm test
+        env:
+          STRIPE_SECRET_KEY: sk_test_dummy
       
       - name: Type check
         run: pnpm check
