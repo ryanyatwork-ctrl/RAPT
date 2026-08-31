@@ -35,19 +35,19 @@ export function canonicalizeDemandSourceUrl(rawUrl: string): string {
   url.hostname = url.hostname.toLowerCase();
 
   const retained: Array<[string, string]> = [];
-  for (const [key, value] of url.searchParams.entries()) {
+  url.searchParams.forEach((value, key) => {
     const lowerKey = key.toLowerCase();
     const isTracking =
       TRACKING_QUERY_KEYS.has(lowerKey) ||
       TRACKING_QUERY_PREFIXES.some((prefix) => lowerKey.startsWith(prefix));
     if (!isTracking) retained.push([key, value]);
-  }
+  });
 
   retained.sort(([aKey, aValue], [bKey, bValue]) =>
     aKey === bKey ? aValue.localeCompare(bValue) : aKey.localeCompare(bKey)
   );
   url.search = "";
-  for (const [key, value] of retained) url.searchParams.append(key, value);
+  retained.forEach(([key, value]) => url.searchParams.append(key, value));
 
   // Treat /events and /events/ as the same source while preserving root '/'.
   if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, "");
