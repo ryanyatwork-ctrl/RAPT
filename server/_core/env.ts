@@ -10,4 +10,16 @@ export const ENV = {
   stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
   stripePublishableKey: process.env.VITE_STRIPE_PUBLISHABLE_KEY ?? "",
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
+
+  // Server-to-server RAPT pricing consumers (GetawayCDA/GetawayNWA).
+  // Production public pricing endpoints fail closed if this key is not set.
+  publicPricingApiKey: process.env.RAPT_PUBLIC_API_KEY ?? "",
+
+  // OwnerRez is disabled by default. Enabling it requires an explicit account,
+  // token, and RAPT-property -> OwnerRez-property mapping.
+  ownerRezEnabled: process.env.OWNERREZ_ENABLED === "true",
+  ownerRezEmail: process.env.OWNERREZ_EMAIL ?? "",
+  ownerRezToken: process.env.OWNERREZ_TOKEN ?? "",
+  ownerRezBaseUrl: process.env.OWNERREZ_BASE_URL ?? "https://api.ownerrez.com",
+  ownerRezPropertyMapJson: process.env.OWNERREZ_PROPERTY_MAP_JSON ?? "{}",
 };
