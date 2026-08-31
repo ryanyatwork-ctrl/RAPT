@@ -2,7 +2,7 @@
 
 Updated: 2026-08-31
 
-This file is the **start-here work queue** for Antigravity. Read it together with:
+This file is the **start-here work queue** for Antigravity. Do not redo completed work. Read it together with:
 
 - `PORTFOLIO-MARKET-ARCHITECTURE.md`
 - `FORWARD-DEMAND-FORECASTING-PRINCIPLE.md`
@@ -10,8 +10,6 @@ This file is the **start-here work queue** for Antigravity. Read it together wit
 - `LONG-TAIL-NICHE-DEMAND-SOURCES.md`
 - `PER-PROPERTY-AI-DEMAND-DISCOVERY.md`
 - `GEMINI-OPAL-ANTIGRAVITY-HANDOFF.md`
-
-Do not revert to a one-market-per-property or one-market-per-account model.
 
 ## Non-negotiable product rules
 
@@ -24,15 +22,15 @@ Do not revert to a one-market-per-property or one-market-per-account model.
 7. Gemini/Opal can propose candidate sources/signals but cannot approve signals, calculate authoritative prices, publish rates, or write OwnerRez/OTA inventory.
 8. No paid signup, OwnerRez activation, external terms acceptance, DNS cutover, or live rate publication without explicit owner approval.
 
-## Completed and merged to RAPT main
+# Completed — do not repeat
 
-The forward-demand foundation was merged as PR #10, merge commit:
+## RAPT forward-demand foundation
+
+Merged PR #10:
 
 `ad21de53f3b608601373def58557848e464d50b8`
 
-### Data model now defined in `drizzle/schema.ts`
-
-Additive schema definitions exist for:
+`drizzle/schema.ts` now contains additive definitions for:
 
 - `accounts`
 - `account_memberships`
@@ -49,17 +47,18 @@ Additive schema definitions exist for:
 - `property_signal_observations`
 - `property_signal_affinity`
 
-The legacy property-bound `events` table remains for compatibility.
+The legacy `properties.userId` and property-bound `events` model remain for transitional compatibility. Existing numeric property IDs have not been changed.
 
-**Important:** schema definitions are merged, but the database migration/backfill has NOT been generated or applied yet.
+**Database migration/backfill has NOT been generated or applied yet.**
 
-### Property-specific relevance engine
+## Forward-first property relevance
 
-Implemented in:
+Implemented:
 
-`server/demand/relevance.ts`
+- `server/demand/relevance.ts`
+- `server/demand/relevance.test.ts`
 
-Forward evidence dominates the score:
+Forward evidence dominates:
 
 - geography / drive time
 - out-of-area travel propensity
@@ -70,223 +69,266 @@ Forward evidence dominates the score:
 - source confidence
 - transportation-corridor relevance
 
-Historical affinity + observed response are capped calibration boosts (maximum 15%).
+Historical affinity + observed booking response are bounded calibration only, capped at 15% total boost.
 
-Tests in:
+Tests prove:
 
-`server/demand/relevance.test.ts`
+- a brand-new future event can score strong with zero historical bookings;
+- the same shared event scores differently for different properties;
+- high attendance alone is not sufficient lodging demand;
+- history cannot make a geographically implausible event strong.
 
-They prove:
+## Gemini / Opal machine boundary
 
-- a brand-new future event can score strong with zero booking history;
-- the same event scores differently for two properties;
-- historical response is bounded calibration;
-- high attendance with low travel/lodging propensity is not automatically strong;
-- historical affinity cannot make a geographically implausible event strong.
+Merged PR #11:
 
-### Gemini / Opal validation boundary
+`c1cd7c08ff8f25dbe18e9a80787d604d1fcdb5fd`
 
-Implemented in:
+Implemented:
 
-`server/demand/contracts.ts`
+- `server/demand/contracts.ts`
+- `server/demand/contracts.test.ts`
 
-Use these Zod schemas as the canonical machine contract for AI-generated source/signal candidates. Candidate output requires evidence/provenance and remains status `candidate`.
+Requirements enforced in code:
 
-Do not build a parallel incompatible JSON shape in Gemini or Opal.
+- evidence/provenance required;
+- candidate-only AI output;
+- strict schemas reject unknown fields;
+- invalid date windows rejected;
+- AI attempts to include approval or authoritative pricing fields are rejected, not silently stripped.
 
-## Current RAPT CI / deployment state
+Gemini and Opal must use these contracts rather than inventing a parallel JSON format.
 
-Application CI is healthy:
+## Candidate identity / deduplication
+
+Merged PR #12:
+
+`4f4c5375a41cda51a27afe37f747c4bdd1fe58c2`
+
+Implemented:
+
+- `server/demand/ingestion.ts`
+- `server/demand/ingestion.test.ts`
+
+Behavior:
+
+- strict validation before ingestion processing;
+- canonical public-source URLs;
+- tracking/referral parameter removal;
+- duplicate source reconciliation;
+- recurring series identity separated from dated occurrence identity;
+- duplicate mentions from organizer / venue / tourism / registration sources reconcile into one event candidate with combined evidence;
+- different years and different venues remain separate occurrences;
+- unauthorized AI pricing/approval fields fail before deduplication.
+
+CI after the compatibility fix:
 
 - tests: passing
-- TypeScript check: passing
+- TypeScript: passing
 - production build: passing
 
-The GitHub Vercel deployment job has been repaired to use the Vercel CLI rather than the removed `vercel/action` GitHub Action.
+## GetawayNWA authoritative guest quote — LIVE
 
-Deployment is currently blocked because the RAPT GitHub repository has no Actions secrets configured for:
+Repo: `ryanyatwork-ctrl/getawaynwa`
+
+Merged main commit:
+
+`77f4f6e63aea03a295245947783d93d6bf3d526f`
+
+Production Vercel deployment:
+
+`dpl_8j7LwjhoWfAaMBoCDpTb82s97qkG`
+
+The booking dialog now:
+
+- POSTs selected property/dates/guests to `/api/travel/quote`;
+- displays exact authoritative nightly amounts;
+- identifies RAPT pricing authority when active;
+- blocks checkout if live quote generation fails;
+- never trusts a browser-supplied price;
+- still lets `/api/checkout` independently revalidate immediately before Stripe.
+
+Do not restore client `quoteStay()` as the selected-stay price authority.
+
+## StayInCDA machine quote parity — LIVE
+
+Repo: `ryanyatwork-ctrl/stayincda`
+
+Merged main commit:
+
+`09cd664838fe57f72ab1188b30d1a4e9cd4e09c4`
+
+Production Vercel deployment:
+
+`dpl_57d24x1TtBtCaHYUDSf7LiyxhjCf`
+
+The CDA guest UI was already based on the live availability/RAPT snapshot. The machine-facing `/api/travel/quote` was corrected to include the same extra-guest fees in the stay total.
+
+Keep unchanged unless separately authorized:
+
+- private upstairs guest-level classification;
+- hosts onsite/downstairs;
+- existing refundable booking deposit flow;
+- booking subdomain architecture only; no DNS cutover yet.
+
+# Current RAPT deployment blocker
+
+Application CI is healthy. GitHub production deployment cannot run because the RAPT repository has no Actions secrets configured for:
 
 - `VERCEL_TOKEN`
 - `VERCEL_ORG_ID`
 - `VERCEL_PROJECT_ID`
 
-The connected Vercel Belleville Systems team exists (`team_yMzMSPeN1dQKqTwvoufdJ6BL`), but **there is currently no RAPT project in that Vercel team**. Do not fabricate IDs or hide this failure. Decide with the owner whether RAPT should actually be created/linked in Vercel before configuring deployment secrets.
+The Belleville Systems Vercel team is:
 
-## Work package 1 — Generate and review the additive DB migration
+`team_yMzMSPeN1dQKqTwvoufdJ6BL`
 
-Run locally from current RAPT `main` with the correct development database configuration.
+There is currently **no RAPT project in that connected Vercel team**. Do not fabricate a project ID or mask the deploy failure. Creation/linking of a real RAPT Vercel project and secret setup requires an authenticated environment that can perform those actions.
+
+# Next work package 1 — Generate migration SQL, REVIEW ONLY
+
+This is the first Antigravity task that requires the local repo/toolchain.
+
+From current RAPT `main`:
 
 1. `git pull`
 2. `pnpm install --frozen-lockfile`
-3. run the project-standard Drizzle generation flow (`pnpm db:push` currently combines generate + migrate; do NOT point this at production blindly)
-4. Prefer generating migration SQL first and reviewing it before any live database migrate.
-5. Preserve all existing numeric property IDs.
-6. Do not drop or rename existing user/property/event data.
+3. generate Drizzle migration SQL from the current schema **without applying it to production**;
+4. return the complete generated SQL for review;
+5. do not run migration against any live database until explicitly approved after review.
+
+The current package command `pnpm db:push` combines generation + migration, so do not blindly use it against a configured production `DATABASE_URL`. Use the Drizzle generation step separately or an isolated development database.
 
 ### Required backfill design
 
-For each existing user:
+For every existing user:
 
 - create one `account`;
-- create an owner `account_membership`;
+- create owner `account_membership`;
 - create one default `portfolio`;
-- attach existing properties to that default portfolio;
-- retain existing `properties.userId` during transition so old code keeps working.
+- associate existing properties with that default portfolio;
+- preserve every existing numeric property ID;
+- retain `properties.userId` during transition.
 
-Do not make account ownership mandatory in runtime code until the backfill exists.
+No destructive drop/rename of existing user/property/event data.
 
-Return the generated migration SQL for review before production application.
+# Next work package 2 — Account authorization and plan limits
 
-## Work package 2 — Account authorization + plan limits
+After migration/backfill is reviewed and safely applied:
 
-After migration/backfill is validated:
+- add account-aware authorization helpers;
+- preserve transitional user ownership until all callers move over;
+- deny cross-account reads/writes;
+- enforce tier property limits by **active property count only**.
 
-- introduce account-aware authorization helpers;
-- prove cross-account property access is denied;
-- preserve compatibility for the existing user ownership path during transition;
-- enforce plan property limits at **active property count only**;
-- no market/ZIP/state source-count limits.
+The legacy helper already counts only `isActive = true`; preserve this semantic.
 
 Tests required:
 
-- free account max 1 active property;
-- pro max 10 active properties;
-- disabled/inactive property does not consume a slot;
-- properties across multiple states consume only one slot each;
-- cross-account read/write is denied.
+- free: max 1 active property;
+- pro: max 10 active properties;
+- inactive property does not consume a slot;
+- properties across multiple states consume one slot each, not geography slots;
+- cross-account access denied.
 
-## Work package 3 — Candidate source + signal ingestion
+# Next work package 3 — Persistent source/signal ingestion
 
-Build server-layer functions/API for the schemas in `server/demand/contracts.ts`.
+Build the database-backed layer on top of:
+
+- `server/demand/contracts.ts`
+- `server/demand/ingestion.ts`
 
 Requirements:
 
-- validate every candidate through Zod;
-- dedupe shared public sources;
-- retain source provenance and retrieval/change timestamps;
-- recurring series identity separate from dated occurrence;
-- default candidate status only;
-- no AI-driven approval;
-- no private guest notes in shared signal/source records.
+- validate first;
+- dedupe shared public sources/signals;
+- persist provenance, retrieval time, revisions and status;
+- recurring series separate from occurrences;
+- default status `candidate`;
+- candidate/rejected/expired data cannot influence pricing;
+- no private subscriber booking notes in shared public records;
+- AI cannot promote its own candidate.
 
-Add tests for malformed/unsourced AI output rejection.
+Add authorization tests and duplicate-evidence tests at the persistence boundary.
 
-## Work package 4 — Property source discovery
+# Next work package 4 — Per-property source discovery
 
-Implement the lifecycle defined in `PER-PROPERTY-AI-DEMAND-DISCOVERY.md`.
+Implement `PER-PROPERTY-AI-DEMAND-DISCOVERY.md`.
 
-New active property should:
+New/active property lifecycle:
 
 1. normalize/geocode location;
 2. derive timezone;
-3. discover obvious local demand anchors;
-4. identify deterministic source families;
+3. build obvious local demand anchors;
+4. select deterministic source families;
 5. run AI-assisted niche-source discovery;
 6. validate/promote useful sources;
 7. scan 30/60/90/180/365-day horizons;
-8. normalize/dedupe future signals;
+8. normalize/dedupe future candidates;
 9. calculate relevance independently for that property.
 
-First acceptance fixtures should include:
+Initial acceptance fixtures:
 
 - university graduation;
 - major college football home game;
-- nearby wedding venue / availability-state source;
+- wedding venue / public availability-state source;
 - rodeo/fairgrounds event;
-- niche hobby competition available only through a specialized organizer/platform;
+- niche hobby competition discoverable only through a specialized platform;
 - specialty expo/vendor event.
 
-## Work package 5 — Pricing integration
+# Next work package 5 — Forward signal pricing compatibility layer
 
-Do not replace the current pricing engine in one jump.
+Do not rewrite the current pricing engine in one jump.
 
-Create a compatibility layer that supplies **approved, non-expired, property-relevant** forward signals to pricing.
+Add a compatibility adapter that exposes only:
+
+- approved signals;
+- non-expired occurrences;
+- non-irrelevant property relevance.
 
 Requirements:
 
-- candidate/rejected/expired signals never affect price;
-- `irrelevant` property relevance never affects price;
-- strong/moderate/weak property relevance maps to explainable contribution policy;
-- min/max caps remain authoritative;
-- price reasons show the future signal and property-specific rationale;
-- history remains calibration only;
+- candidate/rejected/cancelled/expired signals never affect price;
+- `irrelevant` relevance never affects price;
+- strong/moderate/weak contribution remains explainable;
+- min/max pricing caps remain authoritative;
+- price reasons identify the future event and why it matters to the specific property;
+- historical affinity remains calibration only;
 - channel commissions/guest fees remain outside demand pricing.
 
-## Work package 6 — GetawayNWA live quote UI
+# Gemini classic Gem target
 
-A branch has already been created in `ryanyatwork-ctrl/getawaynwa`:
-
-`live-authoritative-quote-ui`
-
-Current commit:
-
-`214bff656fa84dea58ed4c62712cf4f18cb91adf`
-
-The branch replaces the BookingDialog's local `quoteStay()` selected-stay calculation with `POST /api/travel/quote`.
-
-Expected behavior:
-
-- property + dates + guests trigger a live quote;
-- exact authoritative nightly amounts are displayed;
-- quote error blocks checkout;
-- checkout still independently revalidates through `/api/checkout`;
-- no browser-provided price is trusted;
-- configured nightly range may remain only as a generic pre-date-selection hint.
-
-Before merging:
-
-1. wait for/check Vercel preview build;
-2. run local production build/typecheck if available;
-3. manually exercise Pea Ridge and Springdale date selection;
-4. confirm quote failure blocks checkout;
-5. confirm checkout total equals the freshly revalidated server total.
-
-## Work package 7 — StayInCDA parity audit
-
-After NWA is green, inspect the CDA booking UI for the same static-vs-live quote divergence.
-
-Keep:
-
-- truthful private upstairs guest-level classification;
-- hosts onsite/downstairs;
-- existing $300 deposit flow unless separately authorized to change it;
-- booking subdomain architecture only; no DNS cutover yet.
-
-## Gemini classic Gem — exact implementation target
-
-Create/refresh a separate classic Gem named:
+Create/refresh a **separate** classic Gem:
 
 `RAPT Demand Analyst`
 
-It must use the current code contract in `server/demand/contracts.ts` as its output schema.
-
 Core instruction:
 
-> Discover future travel-demand sources and candidate signals for the supplied property/location/date horizon. Prefer primary sources, retain evidence/provenance, estimate travel propensity separately from attendance, and output candidate data only. Never approve a signal, calculate an authoritative nightly price, or write any booking/pricing platform.
+> Discover future travel-demand sources and candidate signals for the supplied property/location/date horizon. Prefer primary sources, retain evidence/provenance, estimate travel propensity separately from attendance, and output candidate data only using RAPT's `server/demand/contracts.ts` schema. Never approve a signal, calculate an authoritative nightly price, or write any booking/pricing platform.
 
 The existing marketing/GEO Gem remains separate.
 
-## Opal — exact implementation target
+# Opal target
 
-Create a private workflow:
+Create private workflow:
 
 `RAPT Market Demand Packet`
 
 Pipeline:
 
-`property/location + horizon -> source-family selection -> niche source discovery -> evidence retrieval -> candidate normalization -> exact contracts.ts JSON -> review gate`
+`property/location + horizon -> source-family selection -> niche source discovery -> evidence retrieval -> candidate normalization -> contracts.ts JSON -> review gate`
 
-Opal must not become the persistent source of truth. RAPT stores validated sources/signals.
+RAPT remains the persistent source of truth.
 
-## Required handback after Antigravity execution
+# Required handback from Antigravity
 
 Return:
 
 - repo + branch + commit for every change;
-- exact migration SQL;
+- generated migration SQL before any live migration;
 - tests/typecheck/build results;
-- source/signal API examples;
-- one sample candidate from a well-known event;
-- one sample candidate from a niche specialized source;
-- demonstration that the same shared event yields different property relevance;
-- blockers needing credentials, payment, DNS, identity, tax/bank information, or external terms approval.
+- persistence/API examples;
+- one well-known future event candidate;
+- one niche specialized-source candidate;
+- proof that one shared event produces different property relevance;
+- blockers requiring credentials, payment, DNS, identity, tax/banking data, or external terms approval.
