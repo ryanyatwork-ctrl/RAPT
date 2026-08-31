@@ -20,34 +20,78 @@ export interface PricingOutput {
   };
 }
 
-const US_HOLIDAYS_2025_2026: Record<string, string> = {
-  "2025-01-01": "New Year's Day",
-  "2025-01-20": "Martin Luther King Jr. Day",
-  "2025-02-17": "Presidents' Day",
-  "2025-05-26": "Memorial Day",
-  "2025-07-04": "Independence Day",
-  "2025-09-01": "Labor Day",
-  "2025-11-27": "Thanksgiving",
-  "2025-11-28": "Black Friday",
-  "2025-12-24": "Christmas Eve",
-  "2025-12-25": "Christmas Day",
-  "2025-12-31": "New Year's Eve",
-  "2026-01-01": "New Year's Day",
-  "2026-01-19": "Martin Luther King Jr. Day",
-  "2026-02-16": "Presidents' Day",
-  "2026-05-25": "Memorial Day",
-  "2026-07-04": "Independence Day",
-  "2026-07-03": "Independence Day (observed)",
-  "2026-09-07": "Labor Day",
-  "2026-11-26": "Thanksgiving",
-  "2026-11-27": "Black Friday",
-  "2026-12-24": "Christmas Eve",
-  "2026-12-25": "Christmas Day",
-  "2026-12-31": "New Year's Eve",
-};
-
 function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function dateOnly(year: number, monthIndex: number, day: number): Date {
+  return new Date(year, monthIndex, day, 12, 0, 0, 0);
+}
+
+function nthWeekdayOfMonth(
+  year: number,
+  monthIndex: number,
+  weekday: number,
+  nth: number
+): Date {
+  const first = dateOnly(year, monthIndex, 1);
+  const offset = (weekday - first.getDay() + 7) % 7;
+  return dateOnly(year, monthIndex, 1 + offset + (nth - 1) * 7);
+}
+
+function lastWeekdayOfMonth(year: number, monthIndex: number, weekday: number): Date {
+  const last = dateOnly(year, monthIndex + 1, 0);
+  const offset = (last.getDay() - weekday + 7) % 7;
+  return dateOnly(year, monthIndex, last.getDate() - offset);
+}
+
+function observedDate(date: Date): Date | null {
+  if (date.getDay() === 6) {
+    const observed = new Date(date);
+    observed.setDate(observed.getDate() - 1);
+    return observed;
+  }
+  if (date.getDay() === 0) {
+    const observed = new Date(date);
+    observed.setDate(observed.getDate() + 1);
+    return observed;
+  }
+  return null;
+}
+
+function buildHolidayMap(year: number): Map<string, string> {
+  const holidays = new Map<string, string>();
+  const add = (date: Date, name: string, includeObserved = false) => {
+    holidays.set(formatDate(date), name);
+    if (includeObserved) {
+      const observed = observedDate(date);
+      if (observed) holidays.set(formatDate(observed), `${name} (observed)`);
+    }
+  };
+
+  add(dateOnly(year, 0, 1), "New Year's Day", true);
+  add(nthWeekdayOfMonth(year, 0, 1, 3), "Martin Luther King Jr. Day");
+  add(nthWeekdayOfMonth(year, 1, 1, 3), "Presidents' Day");
+  add(lastWeekdayOfMonth(year, 4, 1), "Memorial Day");
+  add(dateOnly(year, 5, 19), "Juneteenth", true);
+  add(dateOnly(year, 6, 4), "Independence Day", true);
+  add(nthWeekdayOfMonth(year, 8, 1, 1), "Labor Day");
+  add(dateOnly(year, 10, 11), "Veterans Day", true);
+
+  const thanksgiving = nthWeekdayOfMonth(year, 10, 4, 4);
+  add(thanksgiving, "Thanksgiving");
+  const blackFriday = new Date(thanksgiving);
+  blackFriday.setDate(blackFriday.getDate() + 1);
+  add(blackFriday, "Black Friday");
+
+  add(dateOnly(year, 11, 24), "Christmas Eve");
+  add(dateOnly(year, 11, 25), "Christmas Day", true);
+  add(dateOnly(year, 11, 31), "New Year's Eve");
+
+  return holidays;
 }
 
 function isWeekend(date: Date): boolean {
@@ -56,7 +100,7 @@ function isWeekend(date: Date): boolean {
 }
 
 function getHoliday(date: Date): string | null {
-  return US_HOLIDAYS_2025_2026[formatDate(date)] || null;
+  return buildHolidayMap(date.getFullYear()).get(formatDate(date)) || null;
 }
 
 function isPeakSeason(date: Date, peakMonths: number[]): boolean {
@@ -65,7 +109,8 @@ function isPeakSeason(date: Date, peakMonths: number[]): boolean {
 
 function isOffSeason(date: Date, peakMonths: number[]): boolean {
   const month = date.getMonth() + 1;
-  // Off season is typically Nov-Feb for most markets (excluding holidays)
+  // This remains a configurable heuristic candidate. Market-specific occupancy
+  // and booking-pace signals should eventually supersede this generic fallback.
   const offMonths = [1, 2, 11];
   return offMonths.includes(month) && !peakMonths.includes(month);
 }
@@ -99,7 +144,8 @@ export function calculatePrice(input: PricingInput): PricingOutput {
     reasons.push(`Weekend pricing (+${Math.round((mult - 1) * 100)}%)`);
   }
 
-  // Holiday multiplier
+  // Holiday multiplier. Holidays are generated for any year rather than being
+  // maintained in a hard-coded year table.
   const holiday = getHoliday(date);
   if (holiday) {
     const mult = parseFloat(String(rules.holidayMultiplier || "1.45"));
@@ -188,7 +234,9 @@ export function generateMonthPricing(
   const daysInMonth = new Date(year, month, 0).getDate();
 
   for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(year, month - 1, day);
+    // Noon avoids DST/midnight boundary surprises while retaining the property's
+    // calendar date through the calculation path.
+    const date = dateOnly(year, month - 1, day);
     const pricing = calculatePrice({ basePrice, date, events, rules });
     results.push({ date: formatDate(date), ...pricing });
   }
@@ -210,7 +258,7 @@ export function calculateRevenueForecast(
   }
 
   const avgOccupancy = totalOccupancy / monthPricing.length;
-  const optimized = projected * 1.12; // 12% uplift from optimization
+  const optimized = projected * 1.12; // Legacy heuristic; replace with measured uplift once RAPT has enough actuals.
 
   return {
     projected: Math.round(projected),
