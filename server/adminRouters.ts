@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "./_core/trpc";
 import { getAllUsersSummary, getUserWithSubscription, updateUserStripeInfo } from "./adminDb";
-import { stripe, createCheckoutSession, cancelSubscription } from "./stripe";
+import { getStripe, createCheckoutSession, cancelSubscription } from "./stripe";
 import { updateUserSubscription } from "./db";
 
 /**
@@ -123,7 +123,7 @@ export const stripeRouter = router({
     }
 
     try {
-      const subscription = await stripe.subscriptions.retrieve(ctx.user.stripeSubscriptionId) as any;
+      const subscription = await getStripe().subscriptions.retrieve(ctx.user.stripeSubscriptionId) as any;
       return {
         id: subscription.id,
         status: subscription.status,
