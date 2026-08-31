@@ -1,4 +1,3 @@
-import { stripe } from "./stripe";
 import { updateUserStripeInfo, getUserByStripeCustomerId } from "./adminDb";
 import { updateUserSubscription } from "./db";
 import type { Request, Response } from "express";
