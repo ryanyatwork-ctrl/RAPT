@@ -2,11 +2,23 @@ import { trpc } from "@/lib/trpc";
 import { UNAUTHED_ERR_MSG } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
+import posthog from "posthog-js";
+import { PostHogProvider } from "posthog-js/react";
 import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
+
+const posthogKey = import.meta.env.VITE_POSTHOG_KEY || "phc_w3P5BnZop9Bn7XZr4Tjguo2BfK6ut3JgqJKgNztR2XBR";
+if (typeof window !== "undefined") {
+  posthog.init(posthogKey, {
+    api_host: "https://j.bellevillesystems.com",
+    ui_host: "https://us.posthog.com",
+    defaults: "2025-05-24",
+    person_profiles: "identified_only",
+  });
+}
 
 const queryClient = new QueryClient();
 
@@ -53,9 +65,11 @@ const trpcClient = trpc.createClient({
 });
 
 createRoot(document.getElementById("root")!).render(
-  <trpc.Provider client={trpcClient} queryClient={queryClient}>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </trpc.Provider>
+  <PostHogProvider client={posthog}>
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </trpc.Provider>
+  </PostHogProvider>
 );

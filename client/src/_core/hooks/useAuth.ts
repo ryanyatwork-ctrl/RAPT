@@ -1,3 +1,4 @@
+import posthog from "posthog-js";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
@@ -36,6 +37,7 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
+      posthog.reset();
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }
@@ -59,6 +61,12 @@ export function useAuth(options?: UseAuthOptions) {
     logoutMutation.error,
     logoutMutation.isPending,
   ]);
+
+  useEffect(() => {
+    if (meQuery.data) {
+      posthog.identify(String(meQuery.data.id), { email: meQuery.data.email ?? undefined });
+    }
+  }, [meQuery.data]);
 
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
