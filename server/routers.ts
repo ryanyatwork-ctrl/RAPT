@@ -15,6 +15,7 @@ import {
   updateUserSubscription,
 } from "./db";
 import { generateMonthPricing, calculateRevenueForecast } from "./pricingEngine";
+import { buildPropertyPricingReport } from "./propertyPricingReport";
 import { adminRouter, stripeRouter } from "./adminRouters";
 import { eventFetchRouter } from "./eventFetchRouter";
 
@@ -113,6 +114,26 @@ const propertyRouter = router({
 // ─── Pricing Router ───────────────────────────────────────────────────────────
 
 const pricingRouter = router({
+  propertyReport: protectedProcedure.input(z.object({
+    propertyId: z.number().int().positive(),
+    year: z.number().int().min(2020).max(2100),
+    month: z.number().int().min(1).max(12),
+    asOf: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
+  })).query(async ({ ctx, input }) => {
+    const prop = await getPropertyById(input.propertyId, ctx.user.id);
+    if (!prop) throw new TRPCError({ code: "NOT_FOUND" });
+    const rules = await getPricingRuleByPropertyId(input.propertyId);
+    if (!rules) throw new TRPCError({ code: "NOT_FOUND", message: "Pricing rules not configured" });
+    const [eventsData, calendar] = await Promise.all([
+      getEventsByPropertyId(input.propertyId),
+      getCalendarDataByPropertyAndMonth(input.propertyId, input.year, input.month),
+    ]);
+    return buildPropertyPricingReport({
+      property: { id: prop.id, name: prop.name, city: prop.city, state: prop.state, basePrice: String(prop.basePrice) },
+      rules, events: eventsData, calendar, year: input.year, month: input.month, asOf: input.asOf,
+    });
+  }),
+
   getRules: protectedProcedure.input(z.object({ propertyId: z.number() })).query(async ({ ctx, input }) => {
     const prop = await getPropertyById(input.propertyId, ctx.user.id);
     if (!prop) throw new TRPCError({ code: "NOT_FOUND" });
