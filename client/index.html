@@ -14,10 +14,67 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="canonical" href="https://getrapt.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://getrapt.app/" />
+    <meta property="og:title" content="RAPT – Really Awesome Pricing Tool" />
+    <meta property="og:description" content="Event-aware pricing for short-term rental hosts. RAPT scores local demand from real events and recommends nightly rates." />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://bellevillesystems.com/#org",
+          "name": "Belleville Systems",
+          "url": "https://bellevillesystems.com"
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "RAPT",
+          "alternateName": "Really Awesome Pricing Tool",
+          "url": "https://getrapt.app/",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web, iOS, Android (PWA)",
+          "description": "Event-aware dynamic pricing for short-term rental hosts. RAPT aggregates local events to score demand, recommends nightly rates with configurable multipliers, drafts listing copy, and forecasts revenue.",
+          "publisher": { "@id": "https://bellevillesystems.com/#org" },
+          "offers": [
+            { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD" },
+            { "@type": "Offer", "name": "Pro", "price": "14", "priceCurrency": "USD", "description": "Per month, up to 10 properties" },
+            { "@type": "Offer", "name": "Advanced", "price": "29", "priceCurrency": "USD", "description": "Per month, unlimited properties" }
+          ]
+        }
+      ]
+    }
+    </script>
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Static content for crawlers and AI answer engines; React replaces it on load. -->
+      <main style="max-width:760px;margin:0 auto;padding:48px 20px;font-family:Inter,system-ui,sans-serif;color:#e2e8f0;background:#0f172a">
+        <h1>RAPT – Really Awesome Pricing Tool</h1>
+        <p>RAPT is an event-aware pricing tool for short-term rental hosts. It scores local demand from real-world events and recommends nightly rates, so you set the right price, for the right guest, at the right time.</p>
+        <h2>What does RAPT do?</h2>
+        <ul>
+          <li><strong>Smart Calendar</strong> – color-coded demand visualization with event overlays.</li>
+          <li><strong>Event Intelligence</strong> – aggregates local events from Eventbrite, city calendars, sports schedules and festivals to score demand.</li>
+          <li><strong>Dynamic Pricing Engine</strong> – configurable multipliers for weekends, holidays, events and seasonality, with an explanation for every price.</li>
+          <li><strong>AI Listing Optimizer</strong> – titles and descriptions tailored to upcoming events and your target guest.</li>
+          <li><strong>Multi-Property Support</strong> – manage any number of properties from one dashboard.</li>
+          <li><strong>Revenue Forecasting</strong> – 6-month rolling revenue projections.</li>
+        </ul>
+        <h2>How is RAPT different from other pricing tools?</h2>
+        <p>Most tools react to past data. RAPT predicts demand from real-world events happening near your property.</p>
+        <h2>How much does RAPT cost?</h2>
+        <ul>
+          <li>Free – $0 forever, 1 property.</li>
+          <li>Pro – $14/month, up to 10 properties, full event intelligence, AI listing optimizer and revenue forecasting.</li>
+          <li>Advanced – $29/month, unlimited properties and automation features.</li>
+        </ul>
+        <p>RAPT is built by <a href="https://bellevillesystems.com" style="color:#22c55e">Belleville Systems</a>. Support and legal: <a href="https://gorapt.com" style="color:#22c55e">gorapt.com</a>.</p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {

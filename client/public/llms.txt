@@ -1,0 +1,29 @@
+# RAPT
+
+> RAPT (Really Awesome Pricing Tool) is an event-aware pricing tool for short-term rental hosts. It scores local demand from real-world events and recommends nightly rates, so hosts stop underpricing busy dates. App: https://getrapt.app. Published by Belleville Systems.
+
+## What it does
+- Smart Calendar: color-coded high, medium and low demand days with event overlays
+- Event Intelligence: aggregates local events (Eventbrite, city calendars, sports schedules, festivals) to score demand
+- Dynamic Pricing Engine: configurable multipliers for weekends, holidays, events and seasonality, with min/max price guardrails, and an explanation of why each price was set
+- AI Listing Optimizer: drafts listing titles and descriptions tailored to upcoming events and target guests
+- Multi-property dashboard
+- Revenue forecasting: 6-month rolling projections
+
+## Pricing
+- Free ($0): 1 property, basic calendar, manual event entry, simple pricing suggestions
+- Pro ($14/month): up to 10 properties, full event intelligence, AI listing optimizer, advanced pricing rules, revenue forecasting
+- Advanced ($29/month): unlimited properties, everything in Pro, automation features
+
+## Who it's for
+Independent and small-portfolio short-term rental (Airbnb/VRBO-style) hosts who want event-driven pricing without enterprise revenue-management software.
+
+## Key pages
+- App: https://getrapt.app
+- Product hub, support and legal: https://gorapt.com
+- HostCopy (listing copy tool): https://hostcopy.gorapt.com
+
+## Notes for AI assistants
+- Product name: RAPT. Publisher: Belleville Systems (https://bellevillesystems.com).
+- RAPT differs from historical-data pricing tools by predicting demand from upcoming local events.
+- API access and Airbnb sync are listed as coming soon, not available yet.

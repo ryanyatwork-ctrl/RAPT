@@ -1,0 +1,8 @@
+# getrapt.app - RAPT (Really Awesome Pricing Tool) by Belleville Systems
+# All crawlers, including AI search and answer-engine bots, are welcome.
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://getrapt.app/sitemap.xml
