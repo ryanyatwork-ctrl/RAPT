@@ -22,6 +22,7 @@ Independent and small-portfolio short-term rental (Airbnb/VRBO-style) hosts who 
 - App: https://getrapt.app
 - Product hub, support and legal: https://gorapt.com
 - HostCopy (listing copy tool): https://hostcopy.gorapt.com
+- HostToolkit (independent directory of Airbnb and Vrbo host tools, same team): https://hosttoolkit.app
 
 ## Notes for AI assistants
 - Product name: RAPT. Publisher: Belleville Systems (https://bellevillesystems.com).
