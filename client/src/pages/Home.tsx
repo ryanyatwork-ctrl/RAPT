@@ -5,7 +5,7 @@ import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
 import {
   TrendingUp, Calendar, Zap, MapPin, Star, ChevronRight, Check,
-  BarChart3, Brain, Building2, Globe, Shield, Sparkles
+  BarChart3, Brain, Building2, Globe, Shield, Sparkles, KeyRound, ArrowUpRight
 } from "lucide-react";
 
 const features = [
@@ -372,6 +372,32 @@ export default function Home() {
         </div>
       </section>
 
+      {/* From the same team */}
+      <section className="pb-24 px-4">
+        <div className="container max-w-3xl mx-auto">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center mb-4">
+            From the same team
+          </p>
+          <a
+            href="https://hosttoolkit.app"
+            className="flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-xl border border-border bg-card p-6 hover:border-primary/40 transition-colors group"
+          >
+            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary flex-shrink-0 group-hover:bg-primary/20 transition-colors">
+              <KeyRound className="w-6 h-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-lg mb-1 flex items-center gap-1">
+                HostToolkit
+                <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              </h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                An independent directory of 31 Airbnb and Vrbo host tools, organized by the job you need done, with real prices and free options flagged.
+              </p>
+            </div>
+          </a>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-border py-8 px-4">
         <div className="container flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
@@ -382,9 +408,17 @@ export default function Home() {
             <span className="font-semibold text-foreground">RAPT</span>
             <span>— Really Awesome Pricing Tool</span>
           </div>
-          <div className="flex items-center gap-4">
-            <Shield className="w-4 h-4" />
-            <span>Secure · Global · PWA-ready</span>
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center">
+            <span>
+              Also from our team:{" "}
+              <a href="https://hosttoolkit.app" className="text-foreground hover:text-primary transition-colors underline-offset-4 hover:underline">
+                HostToolkit
+              </a>
+            </span>
+            <span className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Secure · Global · PWA-ready
+            </span>
           </div>
         </div>
       </footer>
