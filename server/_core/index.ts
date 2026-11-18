@@ -3,6 +3,7 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { registerHealthRoutes } from "./health";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -34,6 +35,10 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // JSON /health + /api/health (DB-backed) and host-aware robots.txt; these
+  // must be registered before the SPA fallback below.
+  registerHealthRoutes(app);
 
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);

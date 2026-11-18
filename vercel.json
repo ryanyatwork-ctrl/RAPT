@@ -36,11 +36,33 @@
       "destination": "/server/_core/index.ts"
     },
     {
+      "source": "/health",
+      "destination": "/server/_core/index.ts"
+    },
+    {
+      "source": "/api/health",
+      "destination": "/server/_core/index.ts"
+    },
+    {
+      "source": "/robots.txt",
+      "has": [{ "type": "host", "value": "engine\\..*" }],
+      "destination": "/server/_core/index.ts"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
+    {
+      "source": "/(health|api/health)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
     {
       "source": "/api/trpc/:path*",
       "headers": [
